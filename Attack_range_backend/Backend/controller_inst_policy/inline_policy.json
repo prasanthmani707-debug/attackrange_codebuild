@@ -1,0 +1,24 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"ec2:DescribeInstances",
+				"ec2:DescribeTags",
+				"ec2:DescribeSecurityGroups",
+				"ec2:DescribeSubnets",
+				"ec2:DescribeVpcs",
+				"ec2:DescribeVolumes",
+				"ec2:StartInstances",
+				"ec2:StopInstances",
+				"ec2:RebootInstances",
+				"ec2:TerminateInstances",
+				"ec2:CreateNetworkInterface",
+				"ec2:DeleteNetworkInterface",
+				"ec2:DescribeNetworkInterfaces"
+			],
+			"Resource": "*"
+		}
+	]
+}

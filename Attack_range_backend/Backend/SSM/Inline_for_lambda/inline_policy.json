@@ -1,0 +1,20 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"ssm:SendCommand",
+				"ssm:GetCommandInvocation",
+				"ssm:ListCommandInvocations",
+				"ssm:ListCommands",
+				"ec2:DescribeInstances",
+				"ec2:DescribeInstances",
+				"ec2:DescribeTags",
+				"ec2:DescribeSecurityGroups",
+				"ec2:DescribeVolumes"
+			],
+			"Resource": "*"
+		}
+	]
+}
