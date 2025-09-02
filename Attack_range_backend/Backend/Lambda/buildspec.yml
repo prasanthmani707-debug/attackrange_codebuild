@@ -1,0 +1,15 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+    commands:
+      - echo "Setting up environment..."
+  build:
+    commands:
+      - echo "Running Attack Range Script"
+      - python lambda_function.py
+artifacts:
+  files:
+    - '**/*'
