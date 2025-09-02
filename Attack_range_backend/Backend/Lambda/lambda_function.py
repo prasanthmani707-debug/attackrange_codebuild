@@ -107,8 +107,9 @@ def lambda_handler(event, context):
 
 if __name__ == "__main__":
     test_event = {
-        "os_type": "Linux",
+        "os_type": "linux",
         "technique_id": "T1110.001"
     }
     response = lambda_handler(test_event, None)
     print("Lambda response:", response)
+
