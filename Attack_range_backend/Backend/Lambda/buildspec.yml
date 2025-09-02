@@ -6,10 +6,27 @@ phases:
       python: 3.12
     commands:
       - echo "Setting up environment..."
+      # Optional: upgrade pip
+      - pip install --upgrade pip
+      # Install dependencies if you have a requirements.txt
+      - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+  pre_build:
+    commands:
+      - echo "Preparing to run Lambda script..."
+
   build:
     commands:
-      - echo "Running Attack Range Script"
+      - echo "Running Attack Range Lambda Script"
+      # Move to the directory containing lambda_function.py
+      - cd Attack_range_backend/Backend/Lambda
       - python lambda_function.py
-artifacts:
-  files:
-    - '**/*'
+
+  post_build:
+    commands:
+      - echo "Build completed"
+
+# Optional: cache Python packages for faster builds
+cache:
+  paths:
+    - "/root/.cache/pip/**/*"
