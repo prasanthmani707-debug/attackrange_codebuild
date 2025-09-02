@@ -191,9 +191,10 @@ if __name__ == "__main__":
     # Example payload for testing
     test_event = {
         "os_type": "Linux",
-        "technique_id": "T1234"
+        "technique_id": "T1110.001"
     }
 
     # Call the lambda_handler with None as context
     response = lambda_handler(test_event, None)
     print("Lambda response:", response)
+
