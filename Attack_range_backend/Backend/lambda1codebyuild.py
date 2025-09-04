@@ -5,33 +5,31 @@ codebuild = boto3.client("codebuild")
 
 def lambda_handler(event, context):
     try:
-        # Event will be a simple JSON with build_id
-        build_id = event.get("build_id")
-        if not build_id:
+        # Here `event` is passed directly (no body wrapper)
+        os_type = event.get("os_type")
+        technique_id = event.get("technique_id")
+
+        if not os_type or not technique_id:
             return {
                 "statusCode": 400,
-                "body": json.dumps({"error": "Missing build_id"})
+                "body": json.dumps({"error": "Missing os_type or technique_id"})
             }
 
-        response = codebuild.batch_get_builds(ids=[build_id])
+        response = codebuild.start_build(
+            projectName="arcode",
+            environmentVariablesOverride=[
+                {"name": "OS_TYPE", "value": os_type, "type": "PLAINTEXT"},
+                {"name": "TECHNIQUE_ID", "value": technique_id, "type": "PLAINTEXT"}
+            ]
+        )
 
-        if not response["builds"]:
-            return {
-                "statusCode": 404,
-                "body": json.dumps({"error": "Build ID not found"})
-            }
-
-        build_info = response["builds"][0]
-        build_status = build_info["buildStatus"]
+        build_id = response["build"]["id"]
 
         return {
             "statusCode": 200,
             "body": json.dumps({
-                "build_id": build_id,
-                "status": build_status,
-                "startTime": str(build_info.get("startTime")),
-                "endTime": str(build_info.get("endTime")),
-                "currentPhase": build_info.get("currentPhase")
+                "message": "Attack started",
+                "build_id": build_id
             })
         }
 
