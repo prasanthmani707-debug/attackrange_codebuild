@@ -1,0 +1,217 @@
+"use client";
+import { useState, useRef } from "react";
+import type React from "react";
+
+export default function Home() {
+  const [status, setStatus] = useState("");
+  const [selectedSubAttacks, setSelectedSubAttacks] = useState<Record<string, string>>({});
+  const [attackResults, setAttackResults] = useState<Record<string, { status: string; timestamp: number }>>({});
+  const [loadingAttacks, setLoadingAttacks] = useState<Record<string, boolean>>({});
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const apiUrl = (typeof window !== "undefined" ? (process.env.NEXT_PUBLIC_API_URL as string) : "") || "";
+
+  const attacksByOS = {
+    windows: [
+      {
+        id: "T1110",
+        name: "Brute-Force",
+        subAttacks: [
+          { id: "T1110.001", name: "Password Guessing" },
+          { id: "T1110.002", name: "Password Cracking" },
+          { id: "T1110.003", name: "Password Spraying" },
+          { id: "T1110.004", name: "Credential Stuffing" },
+        ],
+      },
+      { id: "T1059.003", name: "Command and Scripting Interpreter: Windows Command Shell" },
+    ],
+    linux: [
+      {
+        id: "T1110",
+        name: "Brute-Force",
+        subAttacks: [
+          { id: "T1110.001", name: "Password Guessing" },
+          { id: "T1110.002", name: "Password Cracking" },
+        ],
+      },
+      { id: "T1059.004", name: "Command and Scripting Interpreter: Unix Shell" },
+    ],
+    snort: [
+      { id: "T1071.002", name: "File Transfer Protocols" },
+      { id: "T1059.006", name: "Command and Scripting Interpreter: Python" },
+      { id: "T1027.001", name: "Obfuscated Files: Binary Padding" },
+    ],
+    zeek: [
+      { id: "T1071.003", name: "Application Layer Protocol: HTTP" },
+      { id: "T1055.001", name: "Process Injection: DLL Injection" },
+    ],
+    nginx: [
+      { id: "T1499.001", name: "Endpoint DoS: HTTP Flood" },
+      { id: "T1499.002", name: "Endpoint DoS: Slowloris" },
+    ],
+  };
+
+  const handleAttackLaunch = async (osType: string, attackId: string) => {
+    const attackKey = `${osType}-${attackId}`;
+    setLoadingAttacks((prev) => ({ ...prev, [attackKey]: true }));
+    setAttackResults((prev) => ({ ...prev, [attackKey]: { status: "Launching...", timestamp: Date.now() } }));
+
+    try {
+      // Start attack
+      const startRes = await fetch(`https://8h59klhzti.execute-api.us-west-1.amazonaws.com/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ os_type: osType, technique_id: attackId }),
+      });
+
+      const startData = await startRes.json();
+      if (!startRes.ok) throw new Error(startData.error || "Failed to start attack");
+
+      const buildId = startData.build_id;
+      setStatus(`Attack started: ${attackId} (${buildId})`);
+
+      // Poll status every 5 seconds
+      const interval = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`https://8h59klhzti.execute-api.us-west-1.amazonaws.com/status?build_id=${encodeURIComponent(buildId)}`);
+          const statusData = await statusRes.json();
+          if (!statusRes.ok) throw new Error(statusData.error || "Failed to check status");
+
+          const currentStatus = `Status: ${statusData.status} (Phase: ${statusData.currentPhase || "-"})`;
+          setAttackResults((prev) => ({ ...prev, [attackKey]: { status: currentStatus, timestamp: Date.now() } }));
+
+          if (["SUCCEEDED", "FAILED", "STOPPED"].includes(statusData.status)) {
+            clearInterval(interval);
+            setAttackResults((prev) => ({ ...prev, [attackKey]: { status: `✅ Attack ${statusData.status}`, timestamp: Date.now() } }));
+            setLoadingAttacks((prev) => ({ ...prev, [attackKey]: false }));
+          }
+        } catch (err: any) {
+          clearInterval(interval);
+          setAttackResults((prev) => ({ ...prev, [attackKey]: { status: `❌ Error: ${err.message}`, timestamp: Date.now() } }));
+          setLoadingAttacks((prev) => ({ ...prev, [attackKey]: false }));
+        }
+      }, 5000);
+    } catch (error: any) {
+      setAttackResults((prev) => ({ ...prev, [attackKey]: { status: "❌ Launch failed", timestamp: Date.now() } }));
+      setLoadingAttacks((prev) => ({ ...prev, [attackKey]: false }));
+    }
+  };
+
+  const handleSubAttackChange = (attackKey: string, subAttackId: string) => {
+    setSelectedSubAttacks((prev) => ({ ...prev, [attackKey]: subAttackId }));
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const startX = e.pageX - container.offsetLeft;
+    const scrollLeft = container.scrollLeft;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      container.scrollLeft = scrollLeft - (e.pageX - container.offsetLeft - startX) * 2;
+    };
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      container.style.cursor = "grab";
+    };
+    container.style.cursor = "grabbing";
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
+  return (
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", background: "#f7f9fc", padding: "20px" }}>
+      <div style={{ background: "white", padding: "30px", borderRadius: "10px", boxShadow: "0 4px 8px rgba(0,0,0,0.1)", maxWidth: "1400px", width: "100%" }}>
+        <h2 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "30px", textAlign: "center" }}>Attack Range</h2>
+
+        <div
+          ref={scrollContainerRef}
+          onMouseDown={handleMouseDown}
+          style={{ display: "flex", gap: "24px", overflowX: "auto", padding: "20px 0", cursor: "grab", scrollBehavior: "smooth" }}
+        >
+          {Object.entries(attacksByOS).map(([osType, attacks]) => (
+            <div
+              key={osType}
+              style={{
+                flex: "0 0 300px",
+                border: "2px solid #e2e8f0",
+                borderRadius: "12px",
+                padding: "24px",
+                backgroundColor: "#fafafa",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "bold",
+                  marginBottom: "20px",
+                  textAlign: "center",
+                  color: "#1e293b",
+                  borderBottom: "2px solid #e2e8f0",
+                  paddingBottom: "10px",
+                }}
+              >
+                {osType}
+              </h3>
+
+              {attacks.map((attack) => {
+                const attackKey = `${osType}-${attack.id}`;
+                const hasSubAttacks = "subAttacks" in attack && attack.subAttacks;
+                const effectiveAttackId = hasSubAttacks && selectedSubAttacks[attackKey] ? selectedSubAttacks[attackKey] : attack.id;
+                const effectiveAttackKey = `${osType}-${effectiveAttackId}`;
+                const isLoading = loadingAttacks[effectiveAttackKey] || false;
+                const attackResult = attackResults[effectiveAttackKey];
+
+                return (
+                  <div key={attack.id} style={{ padding: "16px", backgroundColor: "white", borderRadius: "8px", border: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div style={{ fontWeight: "bold" }}>{attack.name}</div>
+                    <div style={{ fontSize: "12px", color: "#64748b" }}>{attack.id}</div>
+
+                    {attackResult && <div style={{ fontSize: "12px", fontWeight: "bold" }}>{attackResult.status}</div>}
+
+                    {hasSubAttacks ? (
+                      <>
+                        <select
+                          value={selectedSubAttacks[attackKey] || ""}
+                          onChange={(e) => handleSubAttackChange(attackKey, e.target.value)}
+                          disabled={isLoading}
+                          style={{ width: "100%", marginBottom: "8px" }}
+                        >
+                          <option value="">Select sub-attack...</option>
+                          {attack.subAttacks.map((sub) => (
+                            <option key={sub.id} value={sub.id}>
+                              {sub.name} ({sub.id})
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => selectedSubAttacks[attackKey] && handleAttackLaunch(osType, selectedSubAttacks[attackKey])}
+                          disabled={!selectedSubAttacks[attackKey] || isLoading}
+                          style={{ width: "100%", padding: "8px", background: "#2563eb", color: "white", borderRadius: "6px" }}
+                        >
+                          {isLoading ? "Launching..." : "Launch"}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => handleAttackLaunch(osType, effectiveAttackId)}
+                        disabled={isLoading}
+                        style={{ width: "100%", padding: "8px", background: "#2563eb", color: "white", borderRadius: "6px" }}
+                      >
+                        {isLoading ? "Launching..." : "Launch"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
