@@ -1,6 +1,7 @@
 
 import boto3
 import time
+import os 
 print("OS_TYPE:", os.getenv("OS_TYPE"))
 print("TECHNIQUE_ID:", os.getenv("TECHNIQUE_ID"))
 CONTROLLER_INSTANCE_ID = "i-0b15485216174c486"   # <-- replace with your controller instance ID
@@ -105,6 +106,7 @@ def lambda_handler(event, context):
             "error": str(e),
             "all_instances": all_instances  # include for debugging
         }
+
 
 
 
