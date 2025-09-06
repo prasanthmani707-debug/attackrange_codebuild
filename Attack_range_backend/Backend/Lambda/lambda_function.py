@@ -106,10 +106,3 @@ def lambda_handler(event, context):
             "all_instances": all_instances  # include for debugging
         }
 
-
-if __name__ == "__main__":
-    # ✅ Local test (simulate environment variables)
-    os.environ["OS_TYPE"] = "windows"
-    os.environ["TECHNIQUE_ID"] = "T1110.001"
-    response = lambda_handler({}, None)
-    print("Lambda response:", response)
