@@ -1,11 +1,13 @@
 import boto3
 import time
+import os   # ✅ needed for environment variables
 
 CONTROLLER_INSTANCE_ID = "i-0b15485216174c486"   # <-- replace with your controller instance ID
 
 def lambda_handler(event, context):
-    os_type = event.get("os_type")     
-    technique_id = event.get("technique_id")
+    # ✅ Read from environment variables set by Lambda 1 (CodeBuild overrides)
+    os_type = os.getenv("OS_TYPE")
+    technique_id = os.getenv("TECHNIQUE_ID")
 
     if not os_type or not technique_id:
         return {
@@ -106,11 +108,8 @@ def lambda_handler(event, context):
 
 
 if __name__ == "__main__":
-    test_event = {
-        "os_type": "windows",
-        "technique_id": "T1110.001"
-    }
-    response = lambda_handler(test_event, None)
+    # ✅ Local test (simulate environment variables)
+    os.environ["OS_TYPE"] = "windows"
+    os.environ["TECHNIQUE_ID"] = "T1110.001"
+    response = lambda_handler({}, None)
     print("Lambda response:", response)
-
-
